@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+:root { color-scheme: dark; background: #151915; color: #f5f6ed; font-family: "Segoe UI", sans-serif; }
+body { margin: 0; }
+button, a { cursor: pointer; }
+button:disabled { cursor: default; }
+button:focus-visible, a:focus-visible, textarea:focus-visible { outline: 2px solid #bbf77a; outline-offset: 3px; }
+.shell { min-height: 100vh; }
+.rail { position: fixed; inset: 0 auto 0 0; width: 248px; padding: 28px 20px; background: #1b211b; border-right: 1px solid #303a30; display: flex; flex-direction: column; z-index: 2; }
+.brand { display: flex; gap: 10px; align-items: center; text-align: left; font-size: 22px; font-weight: 650; letter-spacing: -.045em; margin: 0 0 42px 4px; }
+.brand-mark, .intro-icon { display: grid; place-items: center; color: #c2f595; background: #2e4029; }
+.brand-mark { height: 34px; width: 34px; border-radius: 11px; }
+.new-search { width: 100%; justify-content: flex-start; border: 1px solid #3a4839; color: #e9eee5; height: 44px; padding: 0 12px; font-size: 14px; }
+.history-label { color: #aab7aa; display: flex; align-items: center; gap: 9px; margin: 36px 0 9px 7px; font-size: 14px; }
+.history-empty { color: #a2aba0; font-size: 13px; margin: 4px 8px; }
+.rail nav { overflow: auto; }
+.history-item { width: 100%; display: flex; text-align: left; align-items: center; gap: 9px; padding: 10px 8px; color: #d0d9ce; border-radius: 8px; font-size: 14px; }
+.history-item svg { flex-shrink: 0; }
+.history-item span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-item:hover, .history-item.active { background: #2d382c; }
+main { margin-left: 248px; min-height: 100vh; background: radial-gradient(ellipse at 50% -15%, #263226 0%, #151915 56%); }
+.top { height: 70px; border-bottom: 1px solid #303a30; padding: 0 36px; display: flex; align-items: center; gap: 15px; }
+.top span { display: flex; align-items: center; gap: 9px; color: #b5c1b1; font-size: 14px; }
+.mobile-menu { display: none; }
+.workspace { max-width: 850px; margin: 0 auto; padding: 0 32px 60px; }
+.welcome { padding-top: clamp(72px, 14vh, 180px); }
+.intro { text-align: center; margin-bottom: 35px; }
+.intro-icon { border: 1px solid #3c5436; border-radius: 17px; width: 55px; height: 55px; margin: 0 auto 20px; }
+.intro h1 { margin: 0; font-family: Georgia, serif; font-weight: 400; font-size: clamp(40px, 6vw, 72px); letter-spacing: -.065em; line-height: 1.03; }
+.intro p { margin: 17px 0 0; color: #bec9ba; font-size: 17px; }
+.composer { background: #202820; border: 1px solid #42523e; border-radius: 19px; padding: 15px; box-shadow: 0 16px 44px #090c0955; }
+.composer textarea { width: 100%; background: transparent; resize: vertical; min-height: 56px; max-height: 210px; display: block; border-radius: 6px; padding: 6px 8px; font: inherit; }
+.composer textarea::placeholder { color: #aebbac; }
+.composer-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 9px; }
+.mode { display: flex; flex-wrap: wrap; gap: 4px; }
+.mode button { font-size: 14px; padding: 8px 10px; }
+.mode button[aria-pressed=true] { background: #31432d; color: #d2f6bc; }
+.send { width: 42px; height: 42px; flex-shrink: 0; }
+.suggestions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 19px; }
+.suggestions button { background: #1b231b; border: 1px solid #324031; border-radius: 13px; text-align: left; padding: 15px; font-size: 15px; line-height: 1.45; }
+.suggestions button:hover, .source:hover { border-color: #88a87d; }
+.suggestions span { display: block; margin-bottom: 7px; color: #b3e994; font-size: 14px; }
+.conversation { padding-top: 44px; }
+.turn { margin-bottom: 34px; }
+.turn + .turn { border-top: 1px solid #344033; padding-top: 26px; }
+.turn h1, .turn > h2 { font: 400 clamp(30px, 4vw, 49px)/1.13 Georgia, serif; margin-bottom: 24px; overflow-wrap: anywhere; }
+.source-heading { display: flex; align-items: center; gap: 7px; color: #cee9c7; margin-bottom: 10px; }
+.source-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr)); gap: 9px; margin-bottom: 23px; }
+.source { text-align: left; padding: 11px; border: 1px solid #3a4937; border-radius: 10px; background: #202820; min-width: 0; }
+.source small { display: block; color: #b8c7b4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source small span, .citation { background: #324b2b; color: #c8f6ad; border-radius: 5px; padding: 1px 6px; }
+.source strong { display: block; margin-top: 6px; font-size: 14px; overflow-wrap: anywhere; }
+.answer { line-height: 1.72; color: #e2ebdf; overflow-wrap: anywhere; }
+.answer > * + * { margin-top: 13px; }
+.answer h1, .answer h2, .answer h3 { font-weight: 650; font-size: 1.25em; }
+.answer ul, .answer ol { padding-left: 24px; }
+.answer ul { list-style: disc; }
+.answer ol { list-style: decimal; }
+.answer pre { white-space: pre-wrap; background: #222d22; padding: 12px; border-radius: 8px; }
+.answer th, .answer td { border: 1px solid #42523e; padding: 7px 10px; }
+.answer a, .source-panel a { color: #bbf77a; text-decoration: underline; text-underline-offset: 3px; }
+.answer .citation { text-decoration: none; font-size: 13px; }
+.feedback { color: #c2d4bc; }
+.feedback p { margin: 0 0 14px; }
+.feedback [role=alert] { color: #ffb9a7; }
+.source-panel { position: fixed; right: 18px; bottom: 18px; z-index: 3; width: min(450px, calc(100vw - 36px)); max-height: 70vh; overflow: auto; background: #263126; padding: 23px; border: 1px solid #53684d; border-radius: 16px; box-shadow: 0 20px 50px #0009; overflow-wrap: anywhere; }
+.source-panel .close { float: right; padding: 4px; }
+.source-panel h2 { font-weight: 650; margin: 8px 0; }
+.source-panel p { white-space: pre-wrap; }
+.source-panel a { display: inline-flex; align-items: center; gap: 7px; margin-top: 13px; }
+@media (max-width: 760px) { .rail { display: none; top: 58px; } .rail-open { display: flex; } main { margin-left: 0; } .mobile-menu { display: inline-flex; padding: 5px; } .top { position: sticky; top: 0; z-index: 2; height: 58px; padding: 0 16px; background: #1b211b; } .workspace { padding-left: 17px; padding-right: 17px; } }
+@media (max-width: 530px) { .suggestions { grid-template-columns: 1fr; } .suggestions button { padding: 11px 13px; } .suggestions span { margin-bottom: 3px; } }
