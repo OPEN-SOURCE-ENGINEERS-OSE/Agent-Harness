@@ -1,5 +1,7 @@
 # Komodo 
 
+![Red Ink Komodo Dragon Sketch](./Red%20Ink%20Komodo%20Dragon%20Sketch.png)
+
 Komodo is a local research assistant with web search, direct chat, follow-up threads, source previews, and inline citations. The Next.js app proxies HTTP events from FastAPI on the same origin. The LangGraph workflow fetches Tavily results, caches them in Upstash Redis, retrieves related excerpts from Pinecone using BGE embeddings, and ranks the combined candidates with a BGE cross-encoder before Groq streams the response.
 
 ## Run locally
