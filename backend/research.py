@@ -16,6 +16,10 @@ GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 JINA_TIMEOUT = 30
 
 
+class JinaAuthError(Exception):
+    """Jina Search rejected the request and no API key is configured."""
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     jina_api_key: str = ""
@@ -181,29 +185,40 @@ def source_from_item(item):
         return None
 
 
-def jina_headers():
+def jina_headers(with_auth=True):
     headers = {"Accept": "application/json", "X-Timeout": "20", "X-Retain-Images": "none"}
-    if settings.jina_api_key:
+    if with_auth and settings.jina_api_key:
         headers["Authorization"] = f"Bearer {settings.jina_api_key}"
     return headers
 
 
-async def jina_search(client, query):
-    response = await client.get(
-        settings.jina_search_url, params={"q": query}, headers=jina_headers()
-    )
-    response.raise_for_status()
-    try:
-        payload = response.json()
-    except ValueError:
-        log.warning("Jina Search returned a non-JSON response")
-        return []
+def sources_from_payload(payload):
     sources = []
     for item in parse_jina_items(payload):
         source = source_from_item(item)
         if source:
             sources.append(source)
     return sources
+
+
+async def jina_search(client, query):
+    """Try Jina's URL-path search first, then fall back to the keyed query endpoint."""
+    path_url = settings.jina_search_url.rstrip("/") + "/" + quote(query, safe="")
+    try:
+        response = await client.get(path_url, headers=jina_headers(with_auth=False))
+        response.raise_for_status()
+        sources = sources_from_payload(response.json())
+        if sources:
+            return sources
+    except (httpx.HTTPError, ValueError) as exc:
+        log.info("Keyless Jina Search unavailable: %s", type(exc).__name__)
+    if not settings.jina_api_key:
+        raise JinaAuthError("Jina Search needs JINA_API_KEY in backend/.env.")
+    response = await client.get(
+        settings.jina_search_url, params={"q": query}, headers=jina_headers()
+    )
+    response.raise_for_status()
+    return sources_from_payload(response.json())
 
 
 async def jina_read(client, url):
@@ -431,6 +446,8 @@ async def retrieve_sources(client, query):
                 merged[key] = source
     if not merged:
         for failure in failures:
+            if isinstance(failure, JinaAuthError):
+                raise failure
             if isinstance(failure, httpx.HTTPStatusError) and failure.response.status_code in (401, 403, 429):
                 raise failure
         return [], queries

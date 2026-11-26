@@ -48,7 +48,7 @@ Open <http://127.0.0.1:3000>. Demo mode streams a fixed, labeled sample response
 
 ## Enable live providers
 
-Set `DEMO_MODE=false` in `backend/.env`. All answers need `GROQ_API_KEY`; web answers also need `JINA_API_KEY`, which authenticates [Jina Search](https://jina.ai/search/) (`s.jina.ai`) and [Jina Reader](https://jina.ai/reader/) (`r.jina.ai`). The default Groq model is `openai/gpt-oss-20b`.
+Set `DEMO_MODE=false` in `backend/.env`. All answers need `GROQ_API_KEY`. Web search first calls [Jina Search](https://jina.ai/search/) through its URL path (`https://s.jina.ai/<query>`) with no key; if that is unavailable, Prama retries the keyed `?q=` endpoint using `JINA_API_KEY`. Set the key when Jina requires authentication. [Jina Reader](https://jina.ai/reader/) (`r.jina.ai`) extracts full pages. The default Groq model is `openai/gpt-oss-20b`.
 
 `MAX_SUBQUERIES` (3), `MAX_SOURCES` (6), and `FETCH_FULL_TEXT` tune retrieval. `CITATION_THRESHOLD` (default `0.62`) is the minimum embedding similarity for a sentence to count as supported by a passage; lower it for looser matching or raise it for stricter answers. `ENABLE_RERANKING=false` skips the cross-encoder. Optional integrations are Upstash Redis for the search cache, Pinecone for vector recall, and Supabase for saved history.
 

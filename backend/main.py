@@ -8,7 +8,7 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 
-from research import Query, Source, generate_answer, retrieve_sources, settings, verify_answer
+from research import JinaAuthError, Query, Source, generate_answer, retrieve_sources, settings, verify_answer
 
 log = logging.getLogger(__name__)
 PERSISTENCE = bool(settings.supabase_url and settings.supabase_secret_key)
@@ -66,8 +66,8 @@ async def search(query: Query, thread: UUID, x_session_id: UUID = Header()):
     query.question = query.question.strip()
     if not query.question:
         raise HTTPException(422, "Enter a question.")
-    if not settings.demo_mode and (not settings.groq_api_key or (query.mode == "web" and not settings.jina_api_key)):
-        raise HTTPException(503, "Set GROQ_API_KEY and JINA_API_KEY in backend/.env, or enable demo mode.")
+    if not settings.demo_mode and not settings.groq_api_key:
+        raise HTTPException(503, "Set GROQ_API_KEY in backend/.env, or enable demo mode.")
 
     async def stream():
         yield event("status", {"message": "Planning searches" if query.mode == "web" else "Preparing answer"})
@@ -119,6 +119,8 @@ async def search(query: Query, thread: UUID, x_session_id: UUID = Header()):
                 except httpx.HTTPError:
                     yield event("status", {"message": "Supabase could not save this answer. It is available in this browser."})
             yield event("done", {"persisted": saved})
+        except JinaAuthError as exc:
+            yield event("error", {"message": str(exc)})
         except (httpx.TimeoutException, asyncio.TimeoutError):
             log.error("Research pipeline timed out")
             yield event("error", {"message": "Jina took too long to respond. Try again in a moment."})
