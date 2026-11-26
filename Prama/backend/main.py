@@ -22,7 +22,7 @@ async def lifespan(app):
         yield
 
 
-app = FastAPI(title="Fieldwork", lifespan=lifespan)
+app = FastAPI(title="Prama", lifespan=lifespan)
 
 
 def event(kind, payload):
@@ -86,7 +86,7 @@ async def search(query: Query, thread: UUID, x_session_id: UUID = Header()):
             yield event("status", {"message": "Writing answer"})
             answer = ""
             if settings.demo_mode:
-                answer = ("**Demo mode**\n\nThis sample shows how Fieldwork streams an answer."
+                answer = ("**Demo mode**\n\nThis sample shows how Prama streams an answer."
                           " Live responses require provider credentials.")
                 if sources:
                     answer += "\n\nTavily supplies web results [1], and Groq streams the answer [2]."
@@ -115,3 +115,4 @@ async def search(query: Query, thread: UUID, x_session_id: UUID = Header()):
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})
+

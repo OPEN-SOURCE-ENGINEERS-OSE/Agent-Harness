@@ -92,7 +92,7 @@ def parse_sources(results):
 
 
 async def web_search(client, query):
-    key = "fieldwork:search:v1:" + hashlib.sha256(query.encode()).hexdigest()
+    key = "prama:search:v1:" + hashlib.sha256(query.encode()).hexdigest()
     cached = await redis(client, ["GET", key])
     if cached:
         try:
@@ -123,14 +123,14 @@ async def vector_search(client, query, sources):
         inputs.extend(source.content for source in sources)
         vectors = await asyncio.to_thread(model.encode, inputs, normalize_embeddings=True)
     response = await client.post(host + "/query", headers=headers, json={
-        "namespace": "fieldwork-web", "vector": vectors[0].tolist(), "topK": 8, "includeMetadata": True,
+        "namespace": "prama-web", "vector": vectors[0].tolist(), "topK": 8, "includeMetadata": True,
     })
     response.raise_for_status()
     matches = parse_sources([match.get("metadata", {}) for match in response.json().get("matches", [])
                              if match.get("score", 0) >= 0.45])
     if sources:
         response = await client.post(host + "/vectors/upsert", headers=headers, json={
-            "namespace": "fieldwork-web",
+            "namespace": "prama-web",
             "vectors": [{"id": hashlib.sha256(str(source.url).encode()).hexdigest(),
                          "values": vector.tolist(), "metadata": source.model_dump(mode="json")}
                         for source, vector in zip(sources, vectors[1:])],
@@ -211,3 +211,4 @@ async def generate(client, query, sources):
                 if delta:
                     yield delta
         raise RuntimeError("Groq stream ended before completion")
+

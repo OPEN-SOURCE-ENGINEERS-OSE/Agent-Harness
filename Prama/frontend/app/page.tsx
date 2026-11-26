@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { AudioLines, BookOpen, ExternalLink, Globe2, History, Menu, MessageSquare, Plus, Search, Send, Square, X } from "lucide-react";
+import { BookOpen, ExternalLink, Globe2, History, Menu, MessageSquare, Plus, Send, Square, X } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,16 @@ async function readEvents(response: Response, onEvent: (name: string, data: stri
   }
 }
 
+function PramaMark({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+      <rect x="8" y="7" width="11" height="47" rx="5.5" fill="currentColor" />
+      <circle cx="36" cy="25" r="13.5" fill="none" stroke="currentColor" strokeWidth="9" />
+      <circle cx="36" cy="25" r="6" fill="#F5A800" />
+    </svg>
+  );
+}
+
 function answerMarkdown(turn: Turn) {
   return turn.answer.replace(/\[(\d+)\](?!\()/g, (citation, number) => {
     const source = turn.sources[Number(number) - 1];
@@ -64,10 +74,10 @@ export default function Home() {
   const composer = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const key = localStorage.getItem("fieldwork-session") || crypto.randomUUID();
-    localStorage.setItem("fieldwork-session", key);
+    const key = localStorage.getItem("prama-session") || localStorage.getItem("fieldwork-session") || crypto.randomUUID();
+    localStorage.setItem("prama-session", key);
     session.current = key;
-    try { setThreads(JSON.parse(localStorage.getItem("fieldwork-threads") || "[]")); } catch {}
+    try { setThreads(JSON.parse(localStorage.getItem("prama-threads") || localStorage.getItem("fieldwork-threads") || "[]")); } catch {}
     const controller = new AbortController();
     fetch("/api/search", { headers: { "x-session-id": key }, signal: controller.signal })
       .then(async (response) => {
@@ -143,7 +153,7 @@ export default function Home() {
         const updated = { ...thread, turns: [...thread.turns, turn] };
         setThreads((existing) => {
           const next = [updated, ...existing.filter(({ id }) => id !== updated.id)].slice(0, 30);
-          try { localStorage.setItem("fieldwork-threads", JSON.stringify(next)); } catch {}
+          try { localStorage.setItem("prama-threads", JSON.stringify(next)); } catch {}
           return next;
         });
       }
@@ -161,7 +171,7 @@ export default function Home() {
   return (
     <div className="shell">
       <aside className={"rail " + (menu ? "rail-open" : "")}>
-        <button className="brand" onClick={() => open(null)}><span className="brand-mark"><AudioLines size={20} /></span> Fieldwork</button>
+        <button className="brand" onClick={() => open(null)}><PramaMark className="brand-mark" /> Prama</button>
         <Button className="new-search" onClick={() => open(null)} disabled={busy}><Plus size={17} /> New search</Button>
         <div className="history-label"><History size={16} /> Recent searches</div>
         <nav aria-label="Recent searches">
@@ -179,7 +189,7 @@ export default function Home() {
           <span><BookOpen size={16} /> Research workspace</span>
         </header>
         <div className={current ? "workspace conversation" : "workspace welcome"}>
-          {!current && <div className="intro"><div className="intro-icon"><Search size={25} /></div><h1>Follow your curiosity.</h1><p>Explore questions with answers grounded in sources.</p></div>}
+          {!current && <div className="intro"><div className="intro-icon"><PramaMark /></div><h1>Ask. Verify. Know.</h1><p>Answers you can check, grounded in sources you can open.</p></div>}
           {current?.turns.map((turn, index) => (
             <article className="turn" key={index}>
               {index === 0 ? <h1>{turn.question}</h1> : <h2>{turn.question}</h2>}
