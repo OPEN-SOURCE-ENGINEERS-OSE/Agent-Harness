@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Prama mark">
+  <rect x="8" y="7" width="11" height="47" rx="5.5" fill="#14151D"/>
+  <circle cx="36" cy="25" r="13.5" fill="none" stroke="#14151D" stroke-width="9"/>
+  <circle cx="36" cy="25" r="6" fill="#F5A800"/>
+</svg>
