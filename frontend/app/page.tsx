@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { BookOpen, ExternalLink, Globe2, History, Menu, MessageSquare, Plus, Send, Square, X } from "lucide-react";
+import { BookOpen, Check, ExternalLink, Globe2, History, Menu, MessageSquare, Plus, Send, Square, X } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 
 type Source = { url: string; title: string; content: string };
-type Turn = { question: string; answer: string; sources: Source[] };
+type Verification = { sentences: number; cited: number; repaired: number; removed: number; sources: number };
+type Turn = { question: string; answer: string; sources: Source[]; verification?: Verification };
 type Thread = { id: string; turns: Turn[] };
 type SavedTurn = Turn & { thread_id: string };
 type Mode = "web" | "chat";
@@ -49,6 +50,26 @@ function PramaMark({ className }: { className?: string }) {
       <circle cx="36" cy="25" r="13.5" fill="none" stroke="currentColor" strokeWidth="9" />
       <circle cx="36" cy="25" r="6" fill="#F5A800" />
     </svg>
+  );
+}
+
+function hostOf(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+}
+
+function CitationChip({ number, source }: { number: number; source?: Source }) {
+  return (
+    <span className="citation-wrap">
+      <a className="citation" href={source?.url ?? "#"} target="_blank" rel="noopener noreferrer"
+        aria-label={source ? `Source ${number}: ${source.title}` : `Source ${number}`}>{number}</a>
+      {source && (
+        <span className="citation-card" role="tooltip">
+          <span className="citation-domain">{hostOf(source.url)}</span>
+          <strong>{source.title}</strong>
+          <span className="citation-snippet">{source.content.slice(0, 240)}{source.content.length > 240 ? "…" : ""}</span>
+        </span>
+      )}
+    </span>
   );
 }
 
@@ -136,6 +157,7 @@ export default function Home() {
         const data = JSON.parse(raw);
         if (kind === "status") setStatus(data.message);
         if (kind === "sources") turn = { ...turn, sources: data };
+        if (kind === "verification") turn = { ...turn, verification: data };
         if (kind === "token") turn = { ...turn, answer: turn.answer + data.text };
         if (kind === "error") throw new Error(data.message);
         if (kind === "done") completed = true;
@@ -193,18 +215,35 @@ export default function Home() {
           {current?.turns.map((turn, index) => (
             <article className="turn" key={index}>
               {index === 0 ? <h1>{turn.question}</h1> : <h2>{turn.question}</h2>}
-              {turn.sources.length > 0 && <section aria-label="Sources">
-                <div className="source-heading"><BookOpen size={16} /> Sources</div>
-                <div className="source-grid">{turn.sources.map((source, sourceIndex) => (
-                  <button key={source.url} className="source" onClick={() => setSelectedSource(source)}>
-                    <small><span>{sourceIndex + 1}</span> {new URL(source.url).hostname.replace(/^www\./, "")}</small>
-                    <strong>{source.title}</strong>
-                  </button>
-                ))}</div>
-              </section>}
-              {turn.answer && <div className="answer"><Markdown remarkPlugins={[remarkGfm]} disallowedElements={["img"]} components={{
-                a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className={/^\d+$/.test(String(children)) ? "citation" : undefined}>{children}</a>,
-              }}>{answerMarkdown(turn)}</Markdown></div>}
+              <div className="turn-layout">
+                <div className="turn-main">
+                  {turn.answer && <div className="answer"><Markdown remarkPlugins={[remarkGfm]} disallowedElements={["img"]} components={{
+                    a: ({ children, href }) => {
+                      const label = String(children);
+                      if (/^\d+$/.test(label)) {
+                        const number = Number(label);
+                        return <CitationChip number={number} source={turn.sources[number - 1]} />;
+                      }
+                      return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+                    },
+                  }}>{answerMarkdown(turn)}</Markdown></div>}
+                </div>
+                {turn.sources.length > 0 && <aside className="source-rail" aria-label="Sources">
+                  <div className="source-heading">
+                    <BookOpen size={16} /> Sources <span className="source-count">{turn.sources.length}</span>
+                    {turn.verification && turn.verification.sentences > 0 && <span className="verified" title={`${turn.verification.cited} of ${turn.verification.sentences} sentences cited · ${turn.verification.repaired} repaired · ${turn.verification.removed} removed`}>
+                      <Check size={13} /> Verified
+                    </span>}
+                  </div>
+                  {turn.sources.map((source, sourceIndex) => (
+                    <button key={source.url} className="source" onClick={() => setSelectedSource(source)}>
+                      <small><span>{sourceIndex + 1}</span> {hostOf(source.url)}</small>
+                      <strong>{source.title}</strong>
+                      <p>{source.content.slice(0, 170)}{source.content.length > 170 ? "…" : ""}</p>
+                    </button>
+                  ))}
+                </aside>}
+              </div>
             </article>
           ))}
           <div className="feedback" aria-live="polite">{error ? <p role="alert">{error}</p> : status && <p>{status}{busy ? "…" : ""}</p>}</div>
@@ -229,7 +268,7 @@ export default function Home() {
       </main>
       {selectedSource && <div className="source-panel" role="region" aria-label="Source preview">
         <Button className="close" aria-label="Close source preview" onClick={() => setSelectedSource(null)}><X size={20} /></Button>
-        <small>{new URL(selectedSource.url).hostname}</small>
+        <small>{hostOf(selectedSource.url)}</small>
         <h2>{selectedSource.title}</h2>
         <p>{selectedSource.content}</p>
         <a href={selectedSource.url} target="_blank" rel="noopener noreferrer">Open source <ExternalLink size={15} /></a>

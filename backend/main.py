@@ -8,7 +8,7 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import StreamingResponse
 
-from research import Query, Source, build_graph, generate, settings
+from research import Query, Source, generate_answer, retrieve_sources, settings, verify_answer
 
 log = logging.getLogger(__name__)
 PERSISTENCE = bool(settings.supabase_url and settings.supabase_secret_key)
@@ -16,9 +16,8 @@ PERSISTENCE = bool(settings.supabase_url and settings.supabase_secret_key)
 
 @asynccontextmanager
 async def lifespan(app):
-    async with httpx.AsyncClient(timeout=httpx.Timeout(45, connect=10)) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(120, connect=10)) as client:
         app.state.client = client
-        app.state.graph = None
         yield
 
 
@@ -57,48 +56,59 @@ async def history(thread: UUID | None = None, x_session_id: UUID = Header()):
         raise HTTPException(502, "Saved history is unavailable.") from exc
 
 
+def chunks(text, size=28):
+    for index in range(0, len(text), size):
+        yield text[index:index + size]
+
+
 @app.post("/search")
 async def search(query: Query, thread: UUID, x_session_id: UUID = Header()):
     query.question = query.question.strip()
     if not query.question:
         raise HTTPException(422, "Enter a question.")
-    if not settings.demo_mode and (not settings.groq_api_key or (query.mode == "web" and not settings.tavily_api_key)):
-        raise HTTPException(503, "Configure the Groq and web search credentials, or enable demo mode.")
+    if not settings.demo_mode and (not settings.groq_api_key or (query.mode == "web" and not settings.jina_api_key)):
+        raise HTTPException(503, "Set GROQ_API_KEY and JINA_API_KEY in backend/.env, or enable demo mode.")
 
     async def stream():
-        yield event("status", {"message": "Finding relevant sources" if query.mode == "web" else "Preparing answer"})
+        yield event("status", {"message": "Planning searches" if query.mode == "web" else "Preparing answer"})
         try:
             sources = []
+            queries = []
             if settings.demo_mode:
                 if query.mode == "web":
-                    sources = [Source(url="https://docs.tavily.com/documentation/api-reference/endpoint/search",
-                                      title="Tavily search API", content="Returns relevant web search results."),
-                               Source(url="https://console.groq.com/docs/text-chat", title="Groq text generation",
-                                      content="Supports streaming model completions.")]
+                    sources = [
+                        Source(url="https://jina.ai/reader/", title="Jina Reader",
+                               content="Jina Reader converts a URL into clean, LLM-friendly Markdown, including full page text for grounding."),
+                        Source(url="https://console.groq.com/docs/text-chat", title="Groq text generation",
+                               content="Groq streams low-latency model completions over an OpenAI-compatible chat API."),
+                    ]
             elif query.mode == "web":
-                if app.state.graph is None:
-                    app.state.graph = build_graph(app.state.client)
-                context = query.history[-1].question[:160] + " " if query.history else ""
-                result = await app.state.graph.ainvoke({"query": (context + query.question)[:400]})
-                sources = result["sources"]
+                yield event("status", {"message": "Searching the web with Jina"})
+                sources, queries = await retrieve_sources(app.state.client, query)
+                yield event("status", {"message": f"Reading {len(sources)} sources from {len(queries)} queries"})
             public = [source.model_dump(mode="json") for source in sources]
             yield event("sources", public)
             yield event("status", {"message": "Writing answer"})
             answer = ""
+            verification = None
             if settings.demo_mode:
                 answer = ("**Demo mode**\n\nThis sample shows how Prama streams an answer."
+                          " Jina Reader extracts full pages [1], and Groq writes the cited answer [2]."
                           " Live responses require provider credentials.")
-                if sources:
-                    answer += "\n\nTavily supplies web results [1], and Groq streams the answer [2]."
-                for word in answer.split(" "):
-                    yield event("token", {"text": word + " "})
-                    await asyncio.sleep(0.022)
+            elif query.mode == "web" and not sources:
+                answer = ("I couldn't find web sources for this question. "
+                          "Try rephrasing it or asking something more specific.")
             else:
-                async for token in generate(app.state.client, query, sources):
-                    answer += token
-                    yield event("token", {"text": token})
-                if not answer.strip():
-                    raise RuntimeError("The model did not return an answer")
+                answer = await generate_answer(app.state.client, query, sources)
+                if query.mode == "web" and sources:
+                    yield event("status", {"message": "Verifying citations"})
+                    answer, verification = await verify_answer(app.state.client, answer, sources)
+                    yield event("verification", verification)
+            if not answer.strip():
+                raise RuntimeError("The model did not return an answer")
+            for chunk in chunks(answer):
+                yield event("token", {"text": chunk})
+                await asyncio.sleep(0.008)
             saved = False
             if PERSISTENCE and not settings.demo_mode:
                 try:
@@ -109,6 +119,19 @@ async def search(query: Query, thread: UUID, x_session_id: UUID = Header()):
                 except httpx.HTTPError:
                     yield event("status", {"message": "Supabase could not save this answer. It is available in this browser."})
             yield event("done", {"persisted": saved})
+        except (httpx.TimeoutException, asyncio.TimeoutError):
+            log.error("Research pipeline timed out")
+            yield event("error", {"message": "Jina took too long to respond. Try again in a moment."})
+        except httpx.HTTPStatusError as exc:
+            code = exc.response.status_code
+            log.error("Research pipeline HTTP %s", code)
+            if code in (401, 403):
+                message = "Jina or Groq rejected the API key. Check JINA_API_KEY and GROQ_API_KEY."
+            elif code == 429:
+                message = "Jina or Groq rate limit reached. Try again in a moment."
+            else:
+                message = "The answer could not finish. Try again in a moment."
+            yield event("error", {"message": message})
         except Exception as exc:
             log.error("Research pipeline failed: %s", type(exc).__name__)
             yield event("error", {"message": "The answer could not finish. Try again in a moment."})
