@@ -23,6 +23,32 @@
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
 }
 
+[data-theme="dark"] {
+  color-scheme: dark;
+  /* Deep black charcoal — Perplexity-style dark background. */
+  --ink: #f4f1e7;
+  --cream: #0a0a0b;
+  --paper: #0f1012;
+  --amber: #f5a800;
+  --amber-soft: #c78a00;
+  --amber-deep: #e3b500;
+  --line: #222226;
+  --muted: #999283;
+  background: var(--cream);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .rail { background: #0d0e0f; border-color: #1a1b1c; }
+[data-theme="dark"] .top { background: #0d0e0f; border-color: #1a1b1c; }
+[data-theme="dark"] .top { position: sticky; top: 0; z-index: 2; }
+[data-theme="dark"] .new-search:hover { background: #161718; border-color: #2a2b2c; }
+[data-theme="dark"] .history-item:hover, [data-theme="dark"] .history-item.active { background: #161718; }
+[data-theme="dark"] main { background: #0a0a0b; }
+[data-theme="dark"] .intro-icon { background: #f4f1e7; color: #0a0a0b; box-shadow: 0 10px 24px #ffffff0d; }
+[data-theme="dark"] .answer { color: #e8e3d9; }
+[data-theme="dark"] .answer pre { background: #161718; }
+[data-theme="dark"] .feedback p { margin: 0 0 14px; }
+
 ::selection { background: var(--amber-soft); color: var(--ink); }
 body { margin: 0; background: var(--cream); }
 button, a { cursor: pointer; }
@@ -45,6 +71,8 @@ main { margin-left: 248px; min-height: 100vh; background: radial-gradient(ellips
 .top { height: 70px; border-bottom: 1px solid var(--line); padding: 0 36px; display: flex; align-items: center; gap: 15px; }
 .top span { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 14px; }
 .mobile-menu { display: none; }
+.theme-toggle { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; margin-left: 10px; }
+.theme-toggle:hover { background: var(--amber-soft); border-color: #c9a24a; }
 .workspace { margin: 0 auto; padding: 0 32px 60px; }
 .workspace.welcome { max-width: 850px; padding-top: clamp(72px, 14vh, 180px); }
 .workspace.conversation { max-width: 1120px; }

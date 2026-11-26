@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { BookOpen, Check, ExternalLink, Globe2, History, Menu, MessageSquare, Plus, Send, Square, X } from "lucide-react";
+import { BookOpen, Check, ExternalLink, Globe2, History, Menu, MessageSquare, Moon, Plus, Send, Square, Sun, X } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
   const [selectedSource, setSelectedSource] = useState<Source | null>(null);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
   const session = useRef("");
   const request = useRef<AbortController | null>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -98,6 +99,11 @@ export default function Home() {
     const key = localStorage.getItem("prama-session") || localStorage.getItem("fieldwork-session") || crypto.randomUUID();
     localStorage.setItem("prama-session", key);
     session.current = key;
+    const savedTheme = localStorage.getItem("prama-theme") as "light" | "dark" | null;
+    const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const initial = savedTheme ?? (systemDark ? "dark" : "light");
+    setTheme(initial);
+    document.documentElement.dataset.theme = initial;
     try { setThreads(JSON.parse(localStorage.getItem("prama-threads") || localStorage.getItem("fieldwork-threads") || "[]")); } catch {}
     const controller = new AbortController();
     fetch("/api/search", { headers: { "x-session-id": key }, signal: controller.signal })
@@ -208,6 +214,12 @@ export default function Home() {
       <main>
         <header className="top">
           <Button className="mobile-menu" aria-label={menu ? "Close menu" : "Open menu"} onClick={() => setMenu(!menu)}>{menu ? <X size={20} /> : <Menu size={20} />}</Button>
+          <Button className="theme-toggle" aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"} onClick={() => {
+            const next = theme === "light" ? "dark" : "light";
+            setTheme(next);
+            localStorage.setItem("prama-theme", next);
+            document.documentElement.dataset.theme = next;
+          }}>{theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}</Button>
           <span><BookOpen size={16} /> Research workspace</span>
         </header>
         <div className={current ? "workspace conversation" : "workspace welcome"}>
